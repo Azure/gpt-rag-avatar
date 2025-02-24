@@ -21,7 +21,7 @@ Part of [GPT-RAG](https://aka.ms/gpt-rag)
 ## Concepts
 
 **Enterprise RAG Avatar** is an interactive FastAPI application that harnesses:
-- **GPT-Powered Responses:** Delivers intelligent, context-aware answers.
+- **GenAI-Powered Responses:** Delivers intelligent, context-aware answers.
 - **Voice Interaction:** Integrates Azure Speech API for both speech recognition and text-to-speech.
 - **Secure Secret Management:** Uses Azure Key Vault to safeguard sensitive credentials.
 - **Optional MSAL Authentication:** Enables secure user sign-in.
