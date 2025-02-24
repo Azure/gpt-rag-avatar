@@ -46,7 +46,7 @@ This solution is designed for enterprises looking to build engaging conversation
 
 ## Environment Variables
 
-Set the following environment variables in your `.env` file (or via the App Service's Application Settings). They are grouped by category:
+Set the following environment variables in your `.env` file (or via the App Service's Application Settings).
 
 ### General
 
@@ -70,7 +70,9 @@ Set the following environment variables in your `.env` file (or via the App Serv
 
 - **STREAMING_ENDPOINT:** URL endpoint for the orchestrator’s streaming API.
 
-> **Note:** When deploying to the cloud, you can use the same GPT-RAG web front-end App Service. However, if you wish to run both the front-end and the avatar as separate services, provision a new App Service based on the Python runtime.
+
+> [!NOTE]
+> When deploying to the cloud, you can use the same GPT-RAG web front-end App Service. However, if you wish to run both the front-end and the avatar as separate services, provision a new App Service based on the Python runtime.
 
 ---
 
