@@ -19,6 +19,11 @@ responses_*.xslx
 config.txt
 __azurite*
 
+# Evaluations
+qa_flow_quality_eval.jsonl
+responses.jsonl
+prompty-answer-score-eval.xlsx
+
 # C extensions
 *.so
 
@@ -47,6 +52,8 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+__azurite_db_blob__.json
+__azurite_db_blob_extent__.json
 
 # Installer logs
 pip-log.txt
@@ -109,12 +116,6 @@ ipython_config.py
 #   having no cross-platform support, pipenv may install dependencies that don't work, or not
 #   install all needed dependencies.
 #Pipfile.lock
-
-# UV
-#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#uv.lock
 
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
@@ -183,5 +184,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# PyPI configuration file
-.pypirc
+.python_packages

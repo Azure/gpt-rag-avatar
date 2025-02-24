@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GPT-RAG Avatar</title>
+  <link href="/static/css/styles.css" rel="stylesheet">
+  <!-- Speech SDK -->
+  <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+  <!-- Your simplified chat.js -->
+  <script src="/static/js/chat.js"></script>
+  <script type="module" src="https://unpkg.com/@fluentui/web-components@2.0.0"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+</head>
+<body>
+  <!-- Header with logo and text -->
+  <div id="header">
+    <img src="/static/image/gptrag.png" alt="GPT-RAG Logo" class="logo">
+    <span class="header-text">GPT-RAG</span>
+  </div>
+
+  <!-- Container for avatar and overlay -->
+  <div id="avatarContainer">
+    <!-- Avatar Video Area -->
+    <div id="remoteVideo" class="avatar-box">
+      <!-- The remote video stream will appear here -->
+    </div>
+    <!-- Chat History Overlay (starts hidden) -->
+    <div id="chatHistory" contentEditable="true">
+      <!-- Chat messages will be appended here -->
+    </div>
+
+    <!-- Recording/interaction controls -->
+    <fluent-card class="record-card">
+      <div class="button-container">
+        <button id="startSession" onclick="window.startSession()" class="round-button">
+          <i id="buttonIconStart" class="fas fa-play"></i>
+        </button>
+        <button id="startRecording" onclick="window.startRecording()" class="round-button" style="display: none;">
+          <i id="buttonIcon" class="fas fa-microphone"></i>
+        </button>
+      </div>
+      <label id="instructions">Click here to load the Avatar</label>
+    </fluent-card>    
+  </div>
+
+  <!-- Canvases for video processing if needed -->
+  <canvas id="canvas" width="720" height="1080" style="background-color: transparent;" hidden></canvas>
+  <canvas id="tmpCanvas" width="720" height="1080" hidden></canvas>
+  
+</body>
+</html>
