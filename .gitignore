@@ -18,6 +18,7 @@ responses_*.jsonl
 responses_*.xslx
 config.txt
 __azurite*
+sessions/
 
 # C extensions
 *.so
