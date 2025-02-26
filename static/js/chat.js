@@ -177,8 +177,7 @@ window.startRecording = () => {
                         
                         // Change the microphone button icon to indicate "stop"
                         document.getElementById('startRecording').disabled = true;    
-                        document.getElementById('buttonIcon').className = "fas fa-stop";                
-                        document.getElementById('startRecording').style.backgroundColor = 'red';
+                        document.getElementById('buttonIcon').className = "fas fa-spinner fa-spin";                
                         
                         // Create the recognizer using the default microphone input
                         speechRecognizer = SpeechSDK.SpeechRecognizer.FromConfig(
@@ -215,9 +214,11 @@ window.startRecording = () => {
 
                         // Start continuous recognition
                         speechRecognizer.startContinuousRecognitionAsync(() => {
-                            document.getElementById('startRecording').innerHTML = '<i id="buttonIcon" class="fas fa-stop"></i>';
-                            document.getElementById('startRecording').disabled = false;
-                            console.log("Recording started.");
+                            setTimeout(() => {
+                                document.getElementById('startRecording').innerHTML = '<i id="buttonIcon" class="fas fa-stop"></i>';
+                                document.getElementById('startRecording').disabled = false;
+                                console.log("Recording started.");
+                            }, 4000);
                         }, (err) => {
                             console.error("Failed to start recognition:", err);
                             document.getElementById('startRecording').disabled = false;

@@ -19,6 +19,7 @@ responses_*.xslx
 config.txt
 __azurite*
 sessions/
+deploy.zip
 
 # C extensions
 *.so

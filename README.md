@@ -11,10 +11,10 @@ Part of [GPT-RAG](https://aka.ms/gpt-rag)
 
 1. [Concepts](#concepts)
 2. [Prerequisites](#prerequisites)
-3. [Environment Variables](#environment-variables)
-4. [Azure Key Vault Secrets](#azure-key-vault-secrets)
-5. [Deployment to Azure App Service](#deployment-to-azure-app-service)
-6. [Running Locally](#running-locally)
+3. [Deployment to Azure App Service](#deployment-to-azure-app-service)
+4. [Running Locally](#running-locally)
+5. [Environment Variables](#environment-variables)
+6. [Azure Key Vault Secrets](#azure-key-vault-secrets)
 
 ---
 
@@ -42,84 +42,54 @@ This solution is designed for enterprises looking to build engaging conversation
 > [!IMPORTANT]
 > Avatar uses gpt-rag agentic orchestrator, that supports streaming used in real-time voice interactions.
 
----
-
-## Environment Variables
-
-Set the following environment variables in your `.env` file (or via the App Service's Application Settings).
-
-### General
-- **AZURE_KEY_VAULT_NAME:** Your Azure Key Vault name.
-- **PORT:** Port on which the FastAPI server runs (default: `8000`).
-
-### Authentication
-- **ENABLE_AUTHENTICATION:** `"true"` to enable MSAL-based authentication; otherwise `"false"` (default: `"false"`).
-- **CLIENT_ID:** The Azure AD Application (Client) ID.
-- **AUTHORITY:** The authority URL (default: `https://login.microsoftonline.com/your_tenant_id`).
-- **REDIRECT_PATH:** The authentication redirect path (default: `/getAToken`).
-- **REDIRECT_URI:** The full redirect URI (e.g., `http://localhost:8000/getAToken`).
-- **OTHER_AUTH_SCOPES:** (Optional) Comma-separated list of additional Azure scopes.
-- **APP_SERVICE_CLIENT_SECRET_NAME:** Key Vault secret storing the MSAL client secret (default: `appServiceClientSecretKey`).
-
-### Azure Speech API
-- **AZURE_SPEECH_REGION:** The region for your Azure Speech API (default: `eastus2`).
-- **SUPPORTED_LANGUAGES:** Comma-separated list of supported languages (default: `en-US,de-DE,zh-CN,nl-NL`).
-
-### Orchestrator
-- **STREAMING_ENDPOINT:** URL endpoint for the orchestrator’s streaming API (default: `http://localhost:7071/api/orcstream`).
-
-### Orchestrator
-
-- **STREAMING_ENDPOINT:** URL endpoint for the orchestrator’s streaming API.
-
-
 > [!NOTE]
 > When deploying to the cloud, you can use the same GPT-RAG web front-end App Service. However, if you wish to run both the front-end and the avatar as separate services, provision a new App Service based on the Python runtime.
 
 ---
 
-## Azure Key Vault Secrets
-
-For secure operation, create the following secrets in your Azure Key Vault:
-
-- **avatarSessionSecretKey:** The secret key used for session management.
-- **avatarOrchestratorFunctionKey:** The function key required to access the orchestrator service.
-- **avatarSpeechApiKey:** Your Azure Speech API key.
-- **avatarMsalClientSecret:** The MSAL client secret for authentication.
-
-Also, ensure that the App Service's managed identity is granted permission to get these secrets from the Key Vault.
-
----
-
 ## Deployment to Azure App Service
 
-Assuming your App Service and App Service Plan are already created, follow these steps:
+Follow these steps to deploy your application using the provided scripts.
 
-1. **Prepare Your Deployment Package:**
+### 1. Choose and Run Your Deployment Script
 
-   Zip your project files (exclude the virtual environment and local configuration files):
+We provide two scripts to automate packaging and deployment while excluding unwanted files (`.gitignore` rules apply):
 
-   ```bash
-   zip -r deployment.zip . -x "venv/*" ".env"
-   ```
+- **Bash (`deploy.sh`)** – For Linux/macOS.  
+  Run:
+  ```bash
+  deploy.sh && ./deploy.sh
+  ```
 
-2. **Deploy Using Azure CLI:**
+- **PowerShell (`deploy.ps1`)** – For Windows.  
+  Run:
+  ```powershell
+  PowerShell -ExecutionPolicy Bypass -File .\deploy.ps1
+  ```
 
-   ```bash
-   az webapp deployment source config-zip --resource-group <YourResourceGroup> --name <YourAppServiceName> --src deployment.zip
-   ```
+Both scripts:
+- Store deployment settings (`Resource Group`, `App Service Name`) in `.local`.
+- Package the project into `deployment.zip`, excluding unnecessary files.
+- Deploy using Azure CLI.
+- Remind you to add environment variables and set the startup command.
 
-3. **Configure App Settings:**
+### 2. Configure App Settings in Azure
 
-   - Navigate to your App Service in the [Azure Portal](https://portal.azure.com).
-   - Go to **Configuration** > **Application Settings**.
-   - Add the environment variables listed above.
-   - **Set the Startup Command:**  
-     In the App Service settings, set the startup command to:
-     ```bash
-     uvicorn main:app --host=0.0.0.0 --port=$PORT
-     ```
-   - Save your changes and restart the app.
+After deployment, complete these steps in the [Azure Portal](https://portal.azure.com):
+
+- **Set Environment Variables:**  
+  - Navigate to your App Service → **Configuration** → **Application Settings**.
+  - Add variables as listed in [Environment Variables](#environment-variables).
+
+- **Set the Startup Command:**  
+  ```bash
+  uvicorn main:app --host=0.0.0.0 --port=$PORT
+  ```
+  Save and restart if needed.
+
+- **Set Secrets:**  
+  - Navigate to GPT-RAG's KEyVault.
+  - Add secrets as listed in [Azure Key Vault Secrets](#azure-key-vault-secrets).
 
 ---
 
@@ -173,3 +143,44 @@ Assuming your App Service and App Service Plan are already created, follow these
    ```
 
    Access the app at [http://localhost:8000](http://localhost:8000).
+
+
+---
+
+## Environment Variables
+
+Set the following environment variables in your `.env` file (or via the App Service's Application Settings).
+
+### General
+- **AZURE_KEY_VAULT_NAME:** Your Azure Key Vault name.
+- **PORT:** Port on which the FastAPI server runs (default: `8000`).
+
+### Authentication
+- **ENABLE_AUTHENTICATION:** `"true"` to enable MSAL-based authentication; otherwise `"false"` (default: `"false"`).
+- **CLIENT_ID:** The Azure AD Application (Client) ID.
+- **AUTHORITY:** The authority URL (default: `https://login.microsoftonline.com/your_tenant_id`).
+- **REDIRECT_PATH:** The authentication redirect path (default: `/getAToken`).
+- **REDIRECT_URI:** The full redirect URI (e.g., `http://localhost:8000/getAToken`).
+- **OTHER_AUTH_SCOPES:** (Optional) Comma-separated list of additional Azure scopes.
+- **APP_SERVICE_CLIENT_SECRET_NAME:** Key Vault secret storing the MSAL client secret (default: `appServiceClientSecretKey`).
+
+### Azure Speech API
+- **AZURE_SPEECH_REGION:** The region for your Azure Speech API (default: `eastus2`).
+- **SUPPORTED_LANGUAGES:** Comma-separated list of supported languages (default: `en-US,de-DE,zh-CN,nl-NL`).
+
+### Orchestrator
+- **STREAMING_ENDPOINT:** URL endpoint for the orchestrator’s streaming API (default: `http://localhost:7071/api/orcstream`).
+
+
+---
+
+## Azure Key Vault Secrets
+
+For secure operation, create the following secrets in your Azure Key Vault:
+
+- **avatarSessionSecretKey:** The secret key used for session management.
+- **avatarOrchestratorFunctionKey:** The function key required to access the orchestrator service.
+- **avatarSpeechApiKey:** Your Azure Speech API key.
+- **avatarMsalClientSecret:** The MSAL client secret for authentication.
+
+Also, ensure that the App Service's managed identity is granted permission to get these secrets from the Key Vault.   
