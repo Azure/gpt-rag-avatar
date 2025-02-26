@@ -1,0 +1,47 @@
+[
+    {
+      "name": "AZURE_KEY_VAULT_NAME",
+      "value": "Enter your Azure Key Vault name. Example: 'kv0-n5hmipkwbbanm'."
+    },
+    {
+      "name": "ENABLE_AUTHENTICATION",
+      "value": "Set to 'true' or 'false' to enable authentication. Example: 'true'."
+    },
+    {
+      "name": "CLIENT_ID",
+      "value": "Your application/client ID. Example: 'd56024bc-f5b3-4da1-95b7-89b9601b83a8'."
+    },
+    {
+      "name": "AUTHORITY",
+      "value": "The Azure AD authority URL. Example: 'https://login.microsoftonline.com/2be9339d-935d-46ff-b0e1-511414bdcd78'."
+    },
+    {
+      "name": "REDIRECT_PATH",
+      "value": "Relative URL path used for redirection after authentication. Example: '/getAToken'."
+    },
+    {
+      "name": "REDIRECT_URI",
+      "value": "Full redirect URI to which the auth response is sent. Example: 'http://localhost:8000/getAToken'."
+    },
+    {
+      "name": "OTHER_AUTH_SCOPES",
+      "value": "Any additional authentication scopes required. Example: 'https://analysis.windows.net/powerbi/api/.default'."
+    },
+    {
+      "name": "APP_SERVICE_CLIENT_SECRET_NAME",
+      "value": "The name of the secret stored in Key Vault for your App Service. Example: 'appServiceClientSecretKey'."
+    },
+    {
+      "name": "AZURE_SPEECH_REGION",
+      "value": "The Azure Speech API region. Example: 'eastus2'."
+    },
+    {
+      "name": "SUPPORTED_LANGUAGES",
+      "value": "Comma-separated list of supported languages. Example: 'es-ES,pt-BR'."
+    },
+    {
+      "name": "STREAMING_ENDPOINT",
+      "value": "The endpoint URL for the orchestrator streaming service. Example: 'https://fnorch0-n5hmipkwbbanm.azurewebsites.net/api/orcstream'."
+    }
+  ]
+  

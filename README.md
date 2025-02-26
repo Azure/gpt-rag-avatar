@@ -171,6 +171,9 @@ Set the following environment variables in your `.env` file (or via the App Serv
 ### Orchestrator
 - **STREAMING_ENDPOINT:** URL endpoint for the orchestrator’s streaming API (default: `http://localhost:7071/api/orcstream`).
 
+> [!TIP]
+> For your convenience, we provide a JSON file [env_vars_template.json](docs/env_vars_template.json) that you can update and copy-paste directly into the "Advanced edit" option on the Environment Variables page of your App Service. 
+
 
 ---
 
