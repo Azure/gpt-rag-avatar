@@ -1,8 +1,9 @@
-fastapi==0.95.1
-uvicorn[standard]==0.34.0
+fastapi==0.115.8
+uvicorn[standard]
 httpx==0.24.1
 python-dotenv==1.0.0
 azure-identity
 azure-keyvault-secrets
 msal
 itsdangerous
+aiofiles

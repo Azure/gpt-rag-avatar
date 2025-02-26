@@ -49,22 +49,24 @@ This solution is designed for enterprises looking to build engaging conversation
 Set the following environment variables in your `.env` file (or via the App Service's Application Settings).
 
 ### General
-
 - **AZURE_KEY_VAULT_NAME:** Your Azure Key Vault name.
+- **PORT:** Port on which the FastAPI server runs (default: `8000`).
 
 ### Authentication
-
-- **ENABLE_AUTHENTICATION:** `"true"` to enable MSAL-based authentication; otherwise `"false"`.
+- **ENABLE_AUTHENTICATION:** `"true"` to enable MSAL-based authentication; otherwise `"false"` (default: `"false"`).
 - **CLIENT_ID:** The Azure AD Application (Client) ID.
-- **AUTHORITY:** The authority URL (e.g., `https://login.microsoftonline.com/your_tenant_id`).
-- **REDIRECT_PATH:** The authentication redirect path (e.g., `/auth`).
-- **REDIRECT_URI:** The full redirect URI (e.g., `http://localhost:8000/auth`).
-- **ADDITIONAL_SCOPES:** (Optional) Comma-separated list of extra scopes.
+- **AUTHORITY:** The authority URL (default: `https://login.microsoftonline.com/your_tenant_id`).
+- **REDIRECT_PATH:** The authentication redirect path (default: `/getAToken`).
+- **REDIRECT_URI:** The full redirect URI (e.g., `http://localhost:8000/getAToken`).
+- **OTHER_AUTH_SCOPES:** (Optional) Comma-separated list of additional Azure scopes.
+- **APP_SERVICE_CLIENT_SECRET_NAME:** Key Vault secret storing the MSAL client secret (default: `appServiceClientSecretKey`).
 
 ### Azure Speech API
+- **AZURE_SPEECH_REGION:** The region for your Azure Speech API (default: `eastus2`).
+- **SUPPORTED_LANGUAGES:** Comma-separated list of supported languages (default: `en-US,de-DE,zh-CN,nl-NL`).
 
-- **AZURE_SPEECH_REGION:** The region for your Azure Speech API (e.g., `westus2`).
-- **SUPPORTED_LANGUAGES:** Comma-separated list of supported languages (e.g., `en-US,de-DE,zh-CN,nl-NL`).
+### Orchestrator
+- **STREAMING_ENDPOINT:** URL endpoint for the orchestrator’s streaming API (default: `http://localhost:7071/api/orcstream`).
 
 ### Orchestrator
 

@@ -152,58 +152,82 @@ function setupWebRTC(iceServerUrl, iceServerUsername, iceServerCredential) {
 
 // Start recording user speech (called when the microphone button is clicked)
 window.startRecording = () => {
-    if (!token) {
-        console.error("Speech token not available.");
-        return;
-    }
-    if (speechRecognizer) {
-        window.stopRecording();
-        return;
-    }    
-    fetch("/get-supported-languages")
-    .then(response => response.json())
-    .then(languageData => {
-        const supported_languages = languageData.supported_languages;
-        const autoDetectSourceLanguageConfig = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(supported_languages);
-        fetch("/get-speech-region")
+    // Always fetch a new speech token
+    fetch("/get-speech-token")
+      .then(response => response.json())
+      .then(tokenData => {
+          token = tokenData.token; // Update the global token
+          
+          if (!token) {
+              console.error("Speech token not available.");
+              return;
+          }
+          
+          fetch("/get-supported-languages")
             .then(response => response.json())
-            .then(regionData => {
-                const speechRegion = regionData.speech_region;
-                const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
-                speechConfig.SpeechServiceConnection_LanguageIdMode = "Continuous";
+            .then(languageData => {
+                const supported_languages = languageData.supported_languages;
+                const autoDetectSourceLanguageConfig = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(supported_languages);
+                fetch("/get-speech-region")
+                    .then(response => response.json())
+                    .then(regionData => {
+                        const speechRegion = regionData.speech_region;
+                        const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
+                        speechConfig.SpeechServiceConnection_LanguageIdMode = "Continuous";
+                        
+                        // Change the microphone button icon to indicate "stop"
+                        document.getElementById('startRecording').disabled = true;    
+                        document.getElementById('buttonIcon').className = "fas fa-stop";                
+                        document.getElementById('startRecording').style.backgroundColor = 'red';
+                        
+                        // Create the recognizer using the default microphone input
+                        speechRecognizer = SpeechSDK.SpeechRecognizer.FromConfig(
+                            speechConfig, 
+                            autoDetectSourceLanguageConfig, 
+                            SpeechSDK.AudioConfig.fromDefaultMicrophoneInput()
+                        );
+                        
+                        // Set up the recognized event handler
+                        speechRecognizer.recognized = function(s, e) {
+                            if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                                let userQuery = e.result.text.trim();
+                                if (userQuery === "") return;
+                                console.log("Recognized:", userQuery);
+                                // Stop recognition and process the query
+                                window.stopRecording();
+                                handleUserQuery(userQuery, "", "");
+                            }
+                        };
 
-                // Change the microphone button icon to indicate "stop"
-                document.getElementById('startRecording').disabled = true;    
-                document.getElementById('buttonIcon').className = "fas fa-stop";                
-                document.getElementById('startRecording').style.backgroundColor = 'red';
+                        // Add a canceled event handler to detect errors and reinitialize if needed
+                        speechRecognizer.canceled = function(s, e) {
+                            console.error("Speech recognizer canceled: " + e.errorDetails);
+                            // Check if the cancellation was due to an error (e.g., token expiry or connection failure)
+                            if (e.reason === SpeechSDK.CancellationReason.Error) {
+                                console.log("Detected token expiration or connection issue. Reinitializing recognizer...");
+                                window.stopRecording();
+                                // Wait briefly before reinitializing
+                                setTimeout(() => {
+                                    window.startRecording();
+                                }, 2000);
+                            }
+                        };
 
-                // Create the recognizer using the default microphone input
-                speechRecognizer = SpeechSDK.SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, SpeechSDK.AudioConfig.fromDefaultMicrophoneInput());
-
-                speechRecognizer.recognized = function(s, e) {
-                    if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                        let userQuery = e.result.text.trim();
-                        if (userQuery === "") return;
-                        console.log("Recognized:", userQuery);
-                        // Stop recognition if not continuous
-                        window.stopRecording();
-                        // Call backend /speak to get the assistant's response
-                        handleUserQuery(userQuery, "", "");
-                    }
-                };
-
-                speechRecognizer.startContinuousRecognitionAsync(() => {
-                    document.getElementById('startRecording').innerHTML = '<i id="buttonIcon" class="fas fa-stop"></i>';
-                    document.getElementById('startRecording').disabled = false;
-                    console.log("Recording started.");
-                }, (err) => {
-                    console.error("Failed to start recognition:", err);
-                    document.getElementById('startRecording').disabled = false;
-                });
+                        // Start continuous recognition
+                        speechRecognizer.startContinuousRecognitionAsync(() => {
+                            document.getElementById('startRecording').innerHTML = '<i id="buttonIcon" class="fas fa-stop"></i>';
+                            document.getElementById('startRecording').disabled = false;
+                            console.log("Recording started.");
+                        }, (err) => {
+                            console.error("Failed to start recognition:", err);
+                            document.getElementById('startRecording').disabled = false;
+                        });
+                    })
+                    .catch(err => console.error("Error fetching speech region:", err));
             })
-            .catch(err => console.error("Error fetching speech region:", err));
-        })
-        .catch(err => console.error("Error fetching supported languages:", err));            
+            .catch(err => console.error("Error fetching supported languages:", err));
+      })
+      .catch(err => console.error("Error fetching speech token:", err));
 };
 
 // Stop recording speech
@@ -274,7 +298,7 @@ function handleUserQuery(userQuery, userQueryHTML, imgUrlPath) {
                if (uuidRegex.test(possibleId)) {
                  // Store/update the conversationId and remove it from the chunk.
                  conversationId = possibleId;
-                 console.log("Conversation ID:", conversationId);
+                 console.log("Conversation ID: [", conversationId, "]");
                  chunk = chunk.substring(37);
                }
              }
@@ -284,6 +308,7 @@ function handleUserQuery(userQuery, userQueryHTML, imgUrlPath) {
              spokenSentence += chunk;
              
              if (chunk.trim() === "" || chunk.trim() === "\n") {
+               console.log("Speak Chunk: [", spokenSentence.trim(), "]");
                speak(spokenSentence.trim());
                spokenSentence = "";
              }
