@@ -16,6 +16,8 @@ var token = ""; // Global token for speech recognition
 
 let speechTokenTimestamp = null;
 const TOKEN_VALIDITY_DURATION = 9 * 60 * 1000; // 9 minutes in ms
+// Global variable for the Speech Region; default to "eastus2" if needed.
+let speechRegion = "eastus2";
 
 // Global conversation id that is used between calls.
 // It resets when the page is refreshed.
@@ -36,7 +38,7 @@ function connectAvatar() {
     fetch("/get-speech-region")
         .then(response => response.json())
         .then(regionData => {
-            const speechRegion = regionData.speech_region;
+            speechRegion = regionData.speech_region;
             // Get the speech token
             fetch("/get-speech-token")
                 .then(response => response.json())
@@ -369,10 +371,11 @@ async function refreshSpeechToken() {
         speechTokenTimestamp = new Date();
         console.log("Speech token refreshed.");
 
+        // default to eastus2
+        const currentRegion = speechRegion || "eastus2";
+
         // If the avatarSynthesizer is already initialized, update its SpeechConfig.
         if (avatarSynthesizer) {
-            // Retrieve the region; if not set, you can default to your environment's region.
-            const speechRegion = avatarSynthesizer.speechSynthesisConfig.region || "eastus2";
             let newSpeechSynthesisConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
             newSpeechSynthesisConfig.speechSynthesisVoiceName = avatarSynthesizer.speechSynthesisConfig.speechSynthesisVoiceName;
             // Update the existing synthesizer's configuration.
