@@ -14,6 +14,9 @@ var sessionActive = false;
 var lastSpeakTime;
 var token = ""; // Global token for speech recognition
 
+let speechTokenTimestamp = null;
+const TOKEN_VALIDITY_DURATION = 9 * 60 * 1000; // 9 minutes in ms
+
 // Global conversation id that is used between calls.
 // It resets when the page is refreshed.
 var conversationId = "";
@@ -39,6 +42,7 @@ function connectAvatar() {
                 .then(response => response.json())
                 .then(tokenData => {
                     token = tokenData.token; // store globally for recognition
+                    speechTokenTimestamp = new Date();
                     // Create speech synthesis configuration
                     const speechSynthesisConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
                     speechSynthesisConfig.speechSynthesisVoiceName = "en-US-AvaMultilingualNeural";
@@ -344,36 +348,87 @@ function speak(text, endingSilenceMs = 0) {
     speakNext(text, endingSilenceMs);
 }
 
+
+// Checks if the token is expired or missing, and refreshes it if necessary.
+async function ensureValidToken() {
+    if (!token || !speechTokenTimestamp || (new Date() - speechTokenTimestamp > TOKEN_VALIDITY_DURATION)) {
+        console.log("Speech token expired or not available. Refreshing token...");
+        await refreshSpeechToken();
+    }
+}
+
+// Refreshes the token by fetching from /get-speech-token.
+async function refreshSpeechToken() {
+    try {
+        const response = await fetch("/get-speech-token");
+        if (!response.ok) {
+            throw new Error("Failed to refresh token, status " + response.status);
+        }
+        const tokenData = await response.json();
+        token = tokenData.token;
+        speechTokenTimestamp = new Date();
+        console.log("Speech token refreshed.");
+
+        // If the avatarSynthesizer is already initialized, update its SpeechConfig.
+        if (avatarSynthesizer) {
+            // Retrieve the region; if not set, you can default to your environment's region.
+            const speechRegion = avatarSynthesizer.speechSynthesisConfig.region || "eastus2";
+            let newSpeechSynthesisConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
+            newSpeechSynthesisConfig.speechSynthesisVoiceName = avatarSynthesizer.speechSynthesisConfig.speechSynthesisVoiceName;
+            // Update the existing synthesizer's configuration.
+            avatarSynthesizer.speechSynthesisConfig = newSpeechSynthesisConfig;
+        }
+    } catch (error) {
+        console.error("Error refreshing speech token:", error);
+    }
+}
+
 function speakNext(text, endingSilenceMs = 0) {
     const ttsVoice = "en-US-AvaMultilingualNeural";
     const personalVoiceSpeakerProfileID = "";
-    let ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='en-US'><voice name='${ttsVoice}'><mstts:ttsembedding${personalVoiceSpeakerProfileID ? " speakerProfileId='" + personalVoiceSpeakerProfileID + "'" : ""}><mstts:leadingsilence-exact value='0'/>${text}</mstts:ttsembedding></voice></speak>`;
+    let ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='en-US'>
+                    <voice name='${ttsVoice}'>
+                        <mstts:ttsembedding${personalVoiceSpeakerProfileID ? " speakerProfileId='" + personalVoiceSpeakerProfileID + "'" : ""}>
+                            <mstts:leadingsilence-exact value='0'/>${text}
+                        </mstts:ttsembedding>
+                    </voice>
+                </speak>`;
     if (endingSilenceMs > 0) {
-         ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='en-US'><voice name='${ttsVoice}'><mstts:ttsembedding${personalVoiceSpeakerProfileID ? " speakerProfileId='" + personalVoiceSpeakerProfileID + "'" : ""}><mstts:leadingsilence-exact value='0'/>${text}<break time='${endingSilenceMs}ms' /></mstts:ttsembedding></voice></speak>`;
+         ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='en-US'>
+                    <voice name='${ttsVoice}'>
+                        <mstts:ttsembedding${personalVoiceSpeakerProfileID ? " speakerProfileId='" + personalVoiceSpeakerProfileID + "'" : ""}>
+                            <mstts:leadingsilence-exact value='0'/>${text}<break time='${endingSilenceMs}ms' />
+                        </mstts:ttsembedding>
+                    </voice>
+                </speak>`;
     }
     lastSpeakTime = new Date();
     isSpeaking = true;
-    avatarSynthesizer.speakSsmlAsync(ssml).then((result) => {
-         if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-             console.log(`Spoken: [${text}]. Result ID: ${result.resultId}`);
-             lastSpeakTime = new Date();
-         } else {
-             console.log(`Error speaking text. Result ID: ${result.resultId}`);
-         }
-         if (spokenTextQueue.length > 0) {
-             speakNext(spokenTextQueue.shift());
-         } else {
-             isSpeaking = false;
-         }
-    }).catch((error) => {
-         console.log(`Error speaking SSML: [${error}]`);
-         if (spokenTextQueue.length > 0) {
-             speakNext(spokenTextQueue.shift());
-         } else {
-             isSpeaking = false;
-         }
+    
+    // Ensure the token is valid before speaking
+    ensureValidToken().then(() => {
+        avatarSynthesizer.speakSsmlAsync(ssml).then((result) => {
+             if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                 console.log(`Spoken: [${text}]. Result ID: ${result.resultId}`);
+             } else {
+                 console.error(`Error speaking text. Result ID: ${result.resultId}`);
+             }
+             if (spokenTextQueue.length > 0) {
+                 speakNext(spokenTextQueue.shift());
+             } else {
+                 isSpeaking = false;
+             }
+        }).catch((error) => {
+             console.error(`Error speaking SSML: [${error}]`);
+             if (spokenTextQueue.length > 0) {
+                 speakNext(spokenTextQueue.shift());
+             } else {
+                 isSpeaking = false;
+             }
+        });
     });
 }
+
 
 function stopSpeaking() {
     spokenTextQueue = [];

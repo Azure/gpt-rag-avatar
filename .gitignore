@@ -20,6 +20,7 @@ config.txt
 __azurite*
 sessions/
 deploy.zip
+.git/
 
 # C extensions
 *.so

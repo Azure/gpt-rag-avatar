@@ -1,109 +1,61 @@
-# deploy.ps1
-# Run with: PowerShell -ExecutionPolicy Bypass -File .\deploy.ps1
+# Set strict error handling
+$ErrorActionPreference = "Stop"
 
-# Stop on error
-$ErrorActionPreference = 'Stop'
-
-# Ensure .local directory exists
-$localDir = ".local"
-if (-not (Test-Path $localDir)) {
-    New-Item -ItemType Directory -Path $localDir | Out-Null
+# Create .local directory if it doesn't exist
+$LOCAL_DIR = ".local"
+if (-Not (Test-Path $LOCAL_DIR)) {
+    New-Item -ItemType Directory -Path $LOCAL_DIR | Out-Null
 }
 
-$deployInfoFile = Join-Path $localDir "deploy_info.ps1"
+$DEPLOY_INFO_FILE = Join-Path $LOCAL_DIR "deploy_info"
 
-# Function to prompt for deployment info and save it
-function Get-DeploymentInfo {
-    $resourceGroup = Read-Host "Enter Resource Group Name"
-    $appService = Read-Host "Enter App Service Name"
-    $content = "`$RESOURCE_GROUP = '$resourceGroup'`n`$APP_SERVICE = '$appService'"
-    Set-Content -Path $deployInfoFile -Value $content
-    return @{ RESOURCE_GROUP = $resourceGroup; APP_SERVICE = $appService }
-}
-
-# Load stored info if available and confirm with the user
-if (Test-Path $deployInfoFile) {
-    . $deployInfoFile
+# If deployment info exists, load it and ask for confirmation; otherwise, prompt the user.
+if (Test-Path $DEPLOY_INFO_FILE) {
+    $content = Get-Content $DEPLOY_INFO_FILE
+    foreach ($line in $content) {
+        if ($line -match "^RESOURCE_GROUP=(.*)$") {
+            $RESOURCE_GROUP = $matches[1]
+        }
+        elseif ($line -match "^APP_SERVICE=(.*)$") {
+            $APP_SERVICE = $matches[1]
+        }
+    }
     Write-Host "Stored Resource Group: $RESOURCE_GROUP"
     Write-Host "Stored App Service Name: $APP_SERVICE"
     $confirm = Read-Host "Do you want to use these values? (Y/n)"
-    if ($confirm -eq "n") {
-        $info = Get-DeploymentInfo
-        $RESOURCE_GROUP = $info.RESOURCE_GROUP
-        $APP_SERVICE = $info.APP_SERVICE
+    if ($confirm -match "^[nN]$") {
+        $RESOURCE_GROUP = Read-Host "Enter Resource Group Name"
+        $APP_SERVICE = Read-Host "Enter App Service Name"
+        "RESOURCE_GROUP=$RESOURCE_GROUP" | Out-File -FilePath $DEPLOY_INFO_FILE -Encoding utf8
+        "APP_SERVICE=$APP_SERVICE" | Add-Content -Path $DEPLOY_INFO_FILE
     }
-} else {
-    $info = Get-DeploymentInfo
-    $RESOURCE_GROUP = $info.RESOURCE_GROUP
-    $APP_SERVICE = $info.APP_SERVICE
+}
+else {
+    $RESOURCE_GROUP = Read-Host "Enter Resource Group Name"
+    $APP_SERVICE = Read-Host "Enter App Service Name"
+    "RESOURCE_GROUP=$RESOURCE_GROUP" | Out-File -FilePath $DEPLOY_INFO_FILE -Encoding utf8
+    "APP_SERVICE=$APP_SERVICE" | Add-Content -Path $DEPLOY_INFO_FILE
 }
 
-# Read .gitignore (if exists) and build exclusion patterns.
-# Also add default exclusions: venv/* and .env
-$excludePatterns = @()
-if (Test-Path ".gitignore") {
-    $gitignoreLines = Get-Content ".gitignore" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and ($_ -notmatch '^\s*#') }
-    $excludePatterns += $gitignoreLines
-}
-$excludePatterns += @("venv/*", ".env")
-# Remove duplicate patterns
-$excludePatterns = $excludePatterns | Select-Object -Unique
-
-# Function: check if a relative path should be excluded based on patterns.
-function ShouldExclude($relativePath, $patterns) {
-    # Normalize path to use forward slashes
-    $normPath = $relativePath -replace '\\','/'
-    foreach ($pattern in $patterns) {
-        # Use -like for wildcard matching.
-        if ($normPath -like $pattern) {
-            return $true
-        }
-    }
-    return $false
+# Delete existing deployment.zip if it exists
+if (Test-Path "deployment.zip") {
+    Remove-Item "deployment.zip"
 }
 
-# Get the current directory path (root for zipping)
-$rootPath = (Get-Location).Path
+# Create deployment zip including:
+# - requirements.txt
+# - All .py files in the root
+# - The static folder and its contents
+Compress-Archive -Path "requirements.txt", "*.py", "static" -DestinationPath "deployment.zip"
 
-# Collect all files recursively that are NOT excluded.
-$filesToInclude = Get-ChildItem -Recurse -File | ForEach-Object {
-    # Compute relative path
-    $relativePath = $_.FullName.Substring($rootPath.Length + 1)
-    if (-not (ShouldExclude $relativePath $excludePatterns)) {
-        # Return the relative path (preserving folder structure)
-        $relativePath
-    }
-} | Where-Object { $_ }
+# Deploy using Azure CLI (uncomment the next line to enable deployment)
+az webapp deployment source config-zip --resource-group $RESOURCE_GROUP --name $APP_SERVICE --src deployment.zip
 
-# Create a temporary file list for Compress-Archive
-$tempListFile = [System.IO.Path]::GetTempFileName()
-$tempListFilePath = "$tempListFile.txt"
-# Write the list of relative file paths
-$filesToInclude | Out-File -FilePath $tempListFilePath -Encoding UTF8
-
-# Compress-Archive does not support an exclude parameter.
-# So we use -RootPath with a custom list.
-# If there are no files to include, abort.
-if ($filesToInclude.Count -eq 0) {
-    Write-Error "No files to include in the deployment package."
-    exit 1
-}
-
-# Compress-Archive: To preserve directory structure, we specify the root as the current directory
-# and supply the list of files (relative paths) to include.
-Compress-Archive -RootPath $rootPath -Path $filesToInclude -DestinationPath "deployment.zip" -Force
-
-# Remove temporary file list
-Remove-Item $tempListFilePath -Force
-
-# Deploy using Azure CLI
-$deployCommand = "az webapp deployment source config-zip --resource-group `"$RESOURCE_GROUP`" --name `"$APP_SERVICE`" --src deployment.zip"
-Write-Host "Running deployment command:"
-Write-Host $deployCommand
-Invoke-Expression $deployCommand
-
-Write-Host "`nDeployment complete."
-Write-Host "`nReminder:"
+<# 
+Write-Host "Deployment complete."
+Write-Host ""
+Write-Host "Reminder:"
 Write-Host "1) Add the environment variables listed in README.md."
 Write-Host "2) Set the Startup Command in the App Service settings:"
-Write-Host "   uvicorn main:app --host=0.0.0.0 --port=`$PORT"
+Write-Host "   python -m uvicorn main:app --host=0.0.0.0 --port=$PORT"
+#>

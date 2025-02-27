@@ -28,29 +28,23 @@ else
     echo "APP_SERVICE=$APP_SERVICE" >> "$DEPLOY_INFO_FILE"
 fi
 
-# Build exclude patterns from .gitignore (ignoring empty lines and comments)
-EXCLUDES=()
-if [ -f ".gitignore" ]; then
-    while IFS= read -r line; do
-        # Trim whitespace
-        pattern=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-        # Skip blank lines or comments
-        if [ -z "$pattern" ] || [[ "$pattern" =~ ^# ]]; then
-            continue
-        fi
-        EXCLUDES+=("-x" "$pattern")
-    done < .gitignore
+# Delete existing deployment.zip if it exists
+if [ -f deployment.zip ]; then
+    rm deployment.zip
 fi
 
-# Create deployment zip excluding files/folders from .gitignore
-zip -r deployment.zip . "${EXCLUDES[@]}"
+# Create deployment zip including:
+# - requirements.txt
+# - All .py files in the root
+# - The static folder and its contents
+zip -r deployment.zip requirements.txt *.py static
 
-# Deploy using Azure CLI
+# Deploy using Azure CLI (uncomment the next line to enable deployment)
 az webapp deployment source config-zip --resource-group "$RESOURCE_GROUP" --name "$APP_SERVICE" --src deployment.zip
 
-echo "Deployment complete."
-echo ""
-echo "Reminder:"
-echo "1) Add the environment variables listed in README.md."
-echo "2) Set the Startup Command in the App Service settings:"
-echo "   uvicorn main:app --host=0.0.0.0 --port=\$PORT"
+# echo "Deployment complete."
+# echo ""
+# echo "Reminder:"
+# echo "1) Add the environment variables listed in README.md."
+# echo "2) Set the Startup Command in the App Service settings:"
+# echo "   python -m uvicorn main:app --host=0.0.0.0 --port=$PORT"
