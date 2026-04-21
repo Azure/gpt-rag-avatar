@@ -1,7 +1,7 @@
 fastapi==0.115.8
 uvicorn[standard]
 httpx==0.24.1
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 azure-identity
 azure-keyvault-secrets
 msal
